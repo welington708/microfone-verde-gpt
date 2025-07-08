@@ -11,6 +11,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-direction: column;
     }
 
     button {
@@ -26,16 +27,23 @@
     button.gravando {
       background-color: red;
     }
+
+    p#status {
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
   <button id="btnGravar">🎙️ Gravar</button>
+  <p id="status">Aguardando...</p>
 
   <script>
     let mediaRecorder;
     let audioChunks = [];
 
     const btn = document.getElementById('btnGravar');
+    const statusEl = document.getElementById('status');
 
     btn.onclick = async () => {
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
@@ -54,16 +62,20 @@
             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
             const base64 = await blobToBase64(audioBlob);
 
-            // Enviar para o LWC via postMessage
-            window.parent.postMessage({ texto: '[AUDIO BASE64 OMITIDO]' }, '*');
+            // 🔁 Enviar para o LWC via postMessage com base64 do áudio
+            window.parent.postMessage(
+              { audioBase64: base64 },
+              'https://verdecliente.lightning.force.com' // ajuste para o seu domínio real do Salesforce
+            );
 
-            // 🚧 Se você quiser transcrever diretamente aqui usando Whisper via OpenAI API,
-            // você também pode. Mas nesse caso, o Apex já faz isso.
+            statusEl.textContent = '🎧 Áudio enviado ao Salesforce!';
           };
 
           mediaRecorder.start();
           btn.textContent = '⏹️ Parar';
           btn.classList.add('gravando');
+          statusEl.textContent = '🔴 Gravando...';
+
         } catch (error) {
           console.error('Erro ao acessar o microfone:', error);
           alert('❌ Não foi possível acessar o microfone.');
@@ -72,6 +84,7 @@
         mediaRecorder.stop();
         btn.textContent = '🎙️ Gravar';
         btn.classList.remove('gravando');
+        statusEl.textContent = '⏳ Parando gravação...';
       }
     };
 
