@@ -2,23 +2,42 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <title>Gravação de Áudio</title>
+  <title>Gravador de Áudio</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1.2rem;
+      border: none;
+      background-color: #0070d2;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button.gravando {
+      background-color: red;
+    }
+  </style>
 </head>
 <body>
-  <h1>Teste de Gravação de Áudio</h1>
   <button id="btnGravar">🎙️ Gravar</button>
-  <p id="status"></p>
-  <p><strong>Resposta do Assistente:</strong></p>
-  <pre id="resposta"></pre>
 
   <script>
     let mediaRecorder;
     let audioChunks = [];
 
-    document.getElementById('btnGravar').onclick = async () => {
-      const statusEl = document.getElementById('status');
-      const respostaEl = document.getElementById('resposta');
+    const btn = document.getElementById('btnGravar');
 
+    btn.onclick = async () => {
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -35,40 +54,24 @@
             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
             const base64 = await blobToBase64(audioBlob);
 
-            statusEl.textContent = '🎧 Enviando áudio para o Salesforce...';
+            // Enviar para o LWC via postMessage
+            window.parent.postMessage({ texto: '[AUDIO BASE64 OMITIDO]' }, '*');
 
-            try {
-              const response = await fetch('/services/apexrest/ChatGPTController/transcreverAudio', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ audioBase64: base64 }),
-              });
-
-              if (response.ok) {
-                const data = await response.json();
-                respostaEl.textContent = data.resultado || 'Sem resposta.';
-                statusEl.textContent = '✅ Áudio processado!';
-              } else {
-                statusEl.textContent = '❌ Erro ao enviar áudio para o Salesforce.';
-                respostaEl.textContent = await response.text();
-              }
-            } catch (error) {
-              console.error(error);
-              statusEl.textContent = '❌ Erro de rede ou servidor.';
-            }
+            // 🚧 Se você quiser transcrever diretamente aqui usando Whisper via OpenAI API,
+            // você também pode. Mas nesse caso, o Apex já faz isso.
           };
 
           mediaRecorder.start();
-          statusEl.textContent = '🔴 Gravando... (clique novamente para parar)';
+          btn.textContent = '⏹️ Parar';
+          btn.classList.add('gravando');
         } catch (error) {
           console.error('Erro ao acessar o microfone:', error);
-          alert('Não foi possível acessar o microfone.');
+          alert('❌ Não foi possível acessar o microfone.');
         }
       } else if (mediaRecorder.state === 'recording') {
         mediaRecorder.stop();
-        statusEl.textContent = '⏳ Parando gravação...';
+        btn.textContent = '🎙️ Gravar';
+        btn.classList.remove('gravando');
       }
     };
 
