@@ -1,0 +1,27 @@
+<!-- audio.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gravação de Áudio</title>
+</head>
+<body>
+  <h1>Teste de Gravação de Áudio</h1>
+  <button id="btnGravar">🎙️ Gravar</button>
+
+  <script>
+    document.getElementById('btnGravar').onclick = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('Microfone acessado com sucesso:', stream);
+        alert('Microfone funcionando!');
+
+        // Aqui você pode iniciar gravação, capturar blobs etc.
+      } catch (erro) {
+        console.error('Erro ao acessar microfone:', erro);
+        alert('Não foi possível acessar o microfone.');
+      }
+    };
+  </script>
+</body>
+</html>
