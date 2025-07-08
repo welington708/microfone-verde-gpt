@@ -62,14 +62,18 @@
             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
             const base64 = await blobToBase64(audioBlob);
 
-            // 🔁 Enviar para o LWC via postMessage com base64 do áudio
-            window.parent.postMessage(
-              { audioBase64: base64 },
-              'https://verdeagritech--testes.sandbox.my.salesforce.com' // ✅ CORRETO
-            );
+            const targetOrigin = window.location !== window.parent.location
+              ? 'https://verdeagritech--testes.sandbox.my.salesforce.com'
+              : null;
 
-
-            statusEl.textContent = '🎧 Áudio enviado ao Salesforce!';
+            if (targetOrigin) {
+              window.parent.postMessage({ audioBase64: base64 }, targetOrigin);
+              statusEl.textContent = '🎧 Áudio enviado ao Salesforce!';
+            } else {
+              console.warn('⚠️ Este HTML não está em um iframe. Mensagem não enviada.');
+              console.log('Base64 gerado:', base64);
+              statusEl.textContent = '⚠️ Fora de iframe. Veja o console.';
+            }
           };
 
           mediaRecorder.start();
