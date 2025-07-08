@@ -65,8 +65,9 @@
             // 🔁 Enviar para o LWC via postMessage com base64 do áudio
             window.parent.postMessage(
               { audioBase64: base64 },
-              'https://verdecliente.lightning.force.com' // ajuste para o seu domínio real do Salesforce
+              'https://verdeagritech--testes.sandbox.my.salesforce.com' // ✅ CORRETO
             );
+
 
             statusEl.textContent = '🎧 Áudio enviado ao Salesforce!';
           };
