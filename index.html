@@ -7,36 +7,44 @@
     html, body {
       margin: 0;
       padding: 0;
-      background: transparent;
-      overflow: hidden;
+      background-color: transparent;
       display: flex;
       align-items: center;
       justify-content: center;
       height: 100%;
     }
 
-    button {
-      font-size: 24px;
-      background-color: #0070d2;
-      color: white;
-      border: none;
+    .botao-microfone {
+      width: 48px;
+      height: 48px;
+      background-color: #fff;
+      border: 2px solid #0070d2;
       border-radius: 8px;
-      padding: 8px 12px;
+      font-size: 24px;
+      text-align: center;
       cursor: pointer;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       transition: background-color 0.2s ease-in-out;
     }
 
-    button.gravando {
-      background-color: red;
+    .botao-microfone:hover {
+      background-color: #e6f0ff;
     }
 
-    button:hover {
-      opacity: 0.9;
+    .botao-microfone.gravando {
+      background-color: red;
+      color: white;
+      border-color: red;
     }
   </style>
 </head>
 <body>
-  <button id="btnGravar" title="Clique para gravar áudio">🎙️</button>
+
+  <!-- Botão de microfone -->
+  <button id="btnGravar" class="botao-microfone" title="Clique para gravar áudio">🎙️</button>
 
   <script>
     let mediaRecorder;
@@ -93,5 +101,6 @@
       });
     }
   </script>
+
 </body>
 </html>
