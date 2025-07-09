@@ -14,15 +14,15 @@
       flex-direction: column;
     }
 
-    button {
-      padding: 0.5rem 1rem;
-      font-size: 1.2rem;
-      border: none;
-      background-color: #0070d2;
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+button {
+  all: unset;
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font-size: 24px;
+}
 
     button.gravando {
       background-color: red;
@@ -36,7 +36,7 @@
   </style>
 </head>
 <body>
-  <button id="btnGravar">🎙️ Gravar</button>
+  <button id="btnGravar" style="all: unset; cursor: pointer;">🎙️</button>
   <p id="status">Aguardando permissão...</p>
 
   <script>
