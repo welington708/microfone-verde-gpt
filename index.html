@@ -31,12 +31,13 @@
     p#status {
       margin-top: 10px;
       font-size: 0.9rem;
+      color: #333;
     }
   </style>
 </head>
 <body>
   <button id="btnGravar">🎙️ Gravar</button>
-  <p id="status">Aguardando...</p>
+  <p id="status">Aguardando permissão...</p>
 
   <script>
     let mediaRecorder;
@@ -49,6 +50,7 @@
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
           mediaRecorder = new MediaRecorder(stream);
           audioChunks = [];
 
@@ -62,16 +64,26 @@
             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
             const base64 = await blobToBase64(audioBlob);
 
-            // ✅ Verifica se está dentro de um iframe antes de enviar postMessage
-            if (window.parent !== window) {
-              window.parent.postMessage(
-                { audioBase64: base64 },
-                'https://verdeagritech--testes.sandbox.my.salesforce.com'
-              );
-              statusEl.textContent = '🎧 Áudio enviado ao Salesforce!';
+            const isInsideIframe = window.parent !== window;
+
+            if (isInsideIframe) {
+              const mensagem = {
+                audioBase64: base64
+              };
+
+              const targetOrigin = 'https://verdeagritech--testes.sandbox.my.salesforce.com';
+
+              try {
+                window.parent.postMessage(mensagem, targetOrigin);
+                console.log('✅ postMessage enviado com sucesso para:', targetOrigin);
+                statusEl.textContent = '🎧 Áudio enviado ao Salesforce!';
+              } catch (err) {
+                console.error('❌ Erro ao enviar postMessage:', err);
+                statusEl.textContent = '⚠️ Erro ao enviar áudio.';
+              }
             } else {
-              console.warn('⚠️ Fora de um iframe. postMessage não enviado.');
-              console.log('🎧 Base64 capturado:', base64);
+              console.warn('⚠️ Este arquivo está fora de um iframe. Não é possível usar postMessage.');
+              console.log('📦 Base64 capturado:', base64);
               statusEl.textContent = '⚠️ Fora do iframe. Veja o console.';
             }
           };
@@ -79,24 +91,28 @@
           mediaRecorder.start();
           btn.textContent = '⏹️ Parar';
           btn.classList.add('gravando');
-          statusEl.textContent = '🔴 Gravando...';
+          statusEl.textContent = '🔴 Gravando... clique para parar';
 
-        } catch (error) {
-          console.error('Erro ao acessar o microfone:', error);
-          alert('❌ Não foi possível acessar o microfone.');
+        } catch (err) {
+          console.error('❌ Erro ao acessar o microfone:', err);
+          alert('❌ Não foi possível acessar o microfone. Verifique as permissões.');
+          statusEl.textContent = '❌ Permissão negada ou erro.';
         }
       } else if (mediaRecorder.state === 'recording') {
         mediaRecorder.stop();
         btn.textContent = '🎙️ Gravar';
         btn.classList.remove('gravando');
-        statusEl.textContent = '⏳ Parando gravação...';
+        statusEl.textContent = '⏳ Finalizando gravação...';
       }
     };
 
     function blobToBase64(blob) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.onloadend = () => {
+          const base64data = reader.result.split(',')[1];
+          resolve(base64data);
+        };
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
