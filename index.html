@@ -2,117 +2,92 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <title>Gravador de Áudio</title>
+  <title>Botão de Áudio</title>
   <style>
-    body {
+    html, body {
       margin: 0;
       padding: 0;
-      font-family: sans-serif;
+      background: transparent;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
+      height: 100%;
     }
 
-button {
-  all: unset;
-  background-color: transparent;
-  border: none;
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
-  font-size: 24px;
-}
+    button {
+      font-size: 24px;
+      background-color: #0070d2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+    }
 
     button.gravando {
       background-color: red;
     }
 
-    p#status {
-      margin-top: 10px;
-      font-size: 0.9rem;
-      color: #333;
+    button:hover {
+      opacity: 0.9;
     }
   </style>
 </head>
 <body>
-  <button id="btnGravar" style="all: unset; cursor: pointer;">🎙️</button>
-  <p id="status">Aguardando permissão...</p>
+  <button id="btnGravar" title="Clique para gravar áudio">🎙️</button>
 
   <script>
     let mediaRecorder;
     let audioChunks = [];
 
     const btn = document.getElementById('btnGravar');
-    const statusEl = document.getElementById('status');
 
     btn.onclick = async () => {
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
           mediaRecorder = new MediaRecorder(stream);
           audioChunks = [];
 
-          mediaRecorder.ondataavailable = event => {
-            if (event.data.size > 0) {
-              audioChunks.push(event.data);
-            }
+          mediaRecorder.ondataavailable = e => {
+            if (e.data.size > 0) audioChunks.push(e.data);
           };
 
           mediaRecorder.onstop = async () => {
             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
             const base64 = await blobToBase64(audioBlob);
 
-            const isInsideIframe = window.parent !== window;
-
-            if (isInsideIframe) {
-              const mensagem = {
-                audioBase64: base64
-              };
-
-              const targetOrigin = 'https://verdeagritech--testes.sandbox.my.salesforce.com';
-
-              try {
-                window.parent.postMessage(mensagem, targetOrigin);
-                console.log('✅ postMessage enviado com sucesso para:', targetOrigin);
-                statusEl.textContent = '🎧 Áudio enviado ao Salesforce!';
-              } catch (err) {
-                console.error('❌ Erro ao enviar postMessage:', err);
-                statusEl.textContent = '⚠️ Erro ao enviar áudio.';
-              }
+            if (window.parent !== window) {
+              window.parent.postMessage(
+                { audioBase64: base64 },
+                'https://verdeagritech--testes.sandbox.my.salesforce.com'
+              );
+              console.log('✅ Áudio enviado via postMessage');
             } else {
-              console.warn('⚠️ Este arquivo está fora de um iframe. Não é possível usar postMessage.');
-              console.log('📦 Base64 capturado:', base64);
-              statusEl.textContent = '⚠️ Fora do iframe. Veja o console.';
+              console.warn('⚠️ Fora de um iframe. postMessage não enviado.');
             }
           };
 
           mediaRecorder.start();
-          btn.textContent = '⏹️ Parar';
+          btn.textContent = '⏹️';
           btn.classList.add('gravando');
-          statusEl.textContent = '🔴 Gravando... clique para parar';
-
         } catch (err) {
           console.error('❌ Erro ao acessar o microfone:', err);
-          alert('❌ Não foi possível acessar o microfone. Verifique as permissões.');
-          statusEl.textContent = '❌ Permissão negada ou erro.';
+          alert('❌ Permissão de microfone negada.');
         }
       } else if (mediaRecorder.state === 'recording') {
         mediaRecorder.stop();
-        btn.textContent = '🎙️ Gravar';
+        btn.textContent = '🎙️';
         btn.classList.remove('gravando');
-        statusEl.textContent = '⏳ Finalizando gravação...';
       }
     };
 
     function blobToBase64(blob) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64data = reader.result.split(',')[1];
-          resolve(base64data);
-        };
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
