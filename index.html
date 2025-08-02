@@ -43,7 +43,6 @@
 </head>
 <body>
 
-  <!-- Botão de microfone -->
   <button id="btnGravar" class="botao-microfone" title="Clique para gravar áudio">🎙️</button>
 
   <script>
@@ -51,6 +50,7 @@
     let audioChunks = [];
 
     const btn = document.getElementById('btnGravar');
+    const TARGET_ORIGIN = 'https://verdeagritech--testes.sandbox.lightning.force.com';
 
     btn.onclick = async () => {
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
@@ -67,15 +67,13 @@
             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
             const base64 = await blobToBase64(audioBlob);
 
-            if (window.parent !== window) {
-              window.parent.postMessage(
-                { audioBase64: base64 },
-                'https://verdeagritech--testes.sandbox.my.salesforce.com'
-              );
-              console.log('✅ Áudio enviado via postMessage');
-            } else {
-              console.warn('⚠️ Fora de um iframe. postMessage não enviado.');
-            }
+            // Força o envio do postMessage diretamente
+            window.parent.postMessage(
+              { audioBase64: base64 },
+              TARGET_ORIGIN
+            );
+
+            console.log('✅ Áudio enviado via postMessage');
           };
 
           mediaRecorder.start();
