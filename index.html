@@ -64,7 +64,7 @@
           };
 
           mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' }); // ✅
             const base64 = await blobToBase64(audioBlob);
 
             // Força o envio do postMessage diretamente
