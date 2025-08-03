@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <title>Botão de Áudio</title>
+  <title>Botão de Voz</title>
   <style>
     html, body {
       margin: 0;
@@ -43,62 +43,64 @@
 </head>
 <body>
 
-  <button id="btnGravar" class="botao-microfone" title="Clique para gravar áudio">🎙️</button>
+  <button id="btnGravar" class="botao-microfone" title="Clique para falar">🎙️</button>
 
   <script>
-    let mediaRecorder;
-    let audioChunks = [];
-
     const btn = document.getElementById('btnGravar');
     const TARGET_ORIGIN = 'https://verdeagritech--testes.sandbox.lightning.force.com';
+    let recognition;
+    let isGravando = false;
 
-    btn.onclick = async () => {
-      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream);
-          audioChunks = [];
+    btn.onclick = () => {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert('Reconhecimento de voz não suportado neste navegador.');
+        return;
+      }
 
-          mediaRecorder.ondataavailable = e => {
-            if (e.data.size > 0) audioChunks.push(e.data);
-          };
+      if (!isGravando) {
+        recognition = new webkitSpeechRecognition();
+        recognition.lang = 'pt-BR';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
 
-          mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' }); // ✅
-            const base64 = await blobToBase64(audioBlob);
-
-            // Força o envio do postMessage diretamente
-            window.parent.postMessage(
-              { audioBase64: base64 },
-              TARGET_ORIGIN
-            );
-
-            console.log('✅ Áudio enviado via postMessage');
-          };
-
-          mediaRecorder.start();
+        recognition.onstart = () => {
+          isGravando = true;
           btn.textContent = '⏹️';
           btn.classList.add('gravando');
-        } catch (err) {
-          console.error('❌ Erro ao acessar o microfone:', err);
-          alert('❌ Permissão de microfone negada.');
-        }
-      } else if (mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-        btn.textContent = '🎙️';
-        btn.classList.remove('gravando');
+        };
+
+        recognition.onresult = (event) => {
+          const texto = event.results[0][0].transcript;
+          console.log('🗣️ Texto reconhecido:', texto);
+
+          window.parent.postMessage(
+            { textoTranscrito: texto },
+            TARGET_ORIGIN
+          );
+
+          console.log('✅ Texto enviado via postMessage');
+        };
+
+        recognition.onerror = (event) => {
+          console.error('❌ Erro no reconhecimento:', event.error);
+          alert('Erro: ' + event.error);
+        };
+
+        recognition.onend = () => {
+          isGravando = false;
+          btn.textContent = '🎙️';
+          btn.classList.remove('gravando');
+        };
+
+        recognition.start();
+      } else {
+        recognition.stop();
       }
     };
-
-    function blobToBase64(blob) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    }
   </script>
 
 </body>
 </html>
+<!-- Entrada de texto e áudio git add index.html
+git commit -m "🛠️ com reconhecimento"
+git push origin main -->
