@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <title>Botão de Voz</title>
+  <title>Reconhecimento de Voz</title>
   <style>
     html, body {
       margin: 0;
@@ -12,6 +12,7 @@
       align-items: center;
       justify-content: center;
       height: 100%;
+      font-family: sans-serif;
     }
 
     .botao-microfone {
@@ -21,86 +22,146 @@
       border: 2px solid #0070d2;
       border-radius: 8px;
       font-size: 24px;
-      text-align: center;
       cursor: pointer;
-      line-height: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background-color 0.2s ease-in-out;
     }
 
-    .botao-microfone:hover {
-      background-color: #e6f0ff;
+    .controle-voz {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
     }
 
-    .botao-microfone.gravando {
-      background-color: red;
+    .texto-parcial {
+      font-size: 14px;
+      text-align: center;
+      padding: 4px;
+      background: #eee;
+      border-radius: 6px;
+      width: 160px;
+    }
+
+    .botoes-controle {
+      display: flex;
+      gap: 10px;
+    }
+
+    .botoes-controle button {
+      font-size: 18px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .botoes-controle button.confirmar {
+      background-color: #0070d2;
       color: white;
-      border-color: red;
+    }
+
+    .botoes-controle button.cancelar {
+      background-color: #eee;
+      color: #333;
     }
   </style>
 </head>
 <body>
 
-  <button id="btnGravar" class="botao-microfone" title="Clique para falar">🎙️</button>
+  <div id="app">
+    <button id="btnGravar" class="botao-microfone" title="Clique para falar">🎙️</button>
+  </div>
 
   <script>
-    const btn = document.getElementById('btnGravar');
+    const app = document.getElementById('app');
     const TARGET_ORIGIN = 'https://verdeagritech--testes.sandbox.lightning.force.com';
-    let recognition;
-    let isGravando = false;
 
-    btn.onclick = () => {
+    let recognition;
+    let textoFinal = '';
+
+    function iniciarReconhecimento() {
       if (!('webkitSpeechRecognition' in window)) {
         alert('Reconhecimento de voz não suportado neste navegador.');
         return;
       }
 
-      if (!isGravando) {
-        recognition = new webkitSpeechRecognition();
-        recognition.lang = 'pt-BR';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
+      recognition = new webkitSpeechRecognition();
+      recognition.lang = 'pt-BR';
+      recognition.interimResults = true;
 
-        recognition.onstart = () => {
-          isGravando = true;
-          btn.textContent = '⏹️';
-          btn.classList.add('gravando');
-        };
+      let textoParcial = '';
 
-        recognition.onresult = (event) => {
-          const texto = event.results[0][0].transcript;
-          console.log('🗣️ Texto reconhecido:', texto);
+      // UI de controle
+      const container = document.createElement('div');
+      container.className = 'controle-voz';
+      container.innerHTML = `
+        <div class="texto-parcial" id="parcial">🎤 Escutando...</div>
+        <div class="botoes-controle">
+          <button class="cancelar">❌</button>
+          <button class="confirmar">✅</button>
+        </div>
+      `;
+      app.innerHTML = '';
+      app.appendChild(container);
 
-          window.parent.postMessage(
-            { textoTranscrito: texto },
-            TARGET_ORIGIN
-          );
+      // status para LWC
+      window.parent.postMessage({ status: 'gravando' }, TARGET_ORIGIN);
 
-          console.log('✅ Texto enviado via postMessage');
-        };
+      recognition.onresult = (event) => {
+        textoParcial = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const resultado = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            textoFinal += resultado;
+          } else {
+            textoParcial += resultado;
+          }
+        }
+        document.getElementById('parcial').textContent = textoParcial || textoFinal;
 
-        recognition.onerror = (event) => {
-          console.error('❌ Erro no reconhecimento:', event.error);
-          alert('Erro: ' + event.error);
-        };
+        // opcional: envia texto parcial em tempo real
+        if (textoParcial) {
+          window.parent.postMessage({ textoParcial }, TARGET_ORIGIN);
+        }
+      };
 
-        recognition.onend = () => {
-          isGravando = false;
-          btn.textContent = '🎙️';
-          btn.classList.remove('gravando');
-        };
+      recognition.onerror = (event) => {
+        console.error('Erro:', event.error);
+        alert('Erro de reconhecimento: ' + event.error);
+        cancelar();
+      };
 
-        recognition.start();
-      } else {
+      recognition.onend = () => {
+        console.log('Reconhecimento finalizado');
+      };
+
+      recognition.start();
+
+      // Botões
+      container.querySelector('.cancelar').onclick = () => {
         recognition.stop();
-      }
-    };
+        textoFinal = '';
+        app.innerHTML = `<button id="btnGravar" class="botao-microfone" title="Clique para falar">🎙️</button>`;
+        window.parent.postMessage({ status: 'encerrado' }, TARGET_ORIGIN);
+        document.getElementById('btnGravar').onclick = iniciarReconhecimento;
+      };
+
+      container.querySelector('.confirmar').onclick = () => {
+        recognition.stop();
+        if (textoFinal.trim().length > 0) {
+          window.parent.postMessage({ textoTranscrito: textoFinal }, TARGET_ORIGIN);
+          console.log('✅ Texto enviado via postMessage:', textoFinal);
+        }
+        app.innerHTML = `<button id="btnGravar" class="botao-microfone" title="Clique para falar">🎙️</button>`;
+        window.parent.postMessage({ status: 'encerrado' }, TARGET_ORIGIN);
+        document.getElementById('btnGravar').onclick = iniciarReconhecimento;
+      };
+    }
+
+    document.getElementById('btnGravar').onclick = iniciarReconhecimento;
   </script>
 
 </body>
 </html>
-<!-- Entrada de texto e áudio git add index.html
-git commit -m "🛠️ com reconhecimento"
-git push origin main -->
