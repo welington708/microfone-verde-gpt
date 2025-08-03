@@ -78,7 +78,10 @@
     let textoFinal = '';
     let textoParcial = '';
 
-    const TARGET = 'https://verdeagritech--testes.sandbox.lightning.force.com';
+    const TARGET = window.origin.includes('github.io')
+    ? 'https://welington708.github.io'
+    : 'https://verdeagritech--testes.sandbox.lightning.force.com';
+
 
     function enviar(status, extras = {}) {
       window.parent.postMessage({ status, ...extras }, TARGET);
@@ -148,3 +151,7 @@
   </script>
 </body>
 </html>
+/* git add index.html
+git commit -m "Index com ajuste de botão Trad"
+git push origin main
+ */
