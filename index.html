@@ -31,7 +31,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px; /* menor tamanho dos ícones */
+      font-size: 14px;
       font-weight: bold;
       transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
       border: 2px solid #0070d2;
@@ -60,98 +60,139 @@
     .hidden {
       display: none;
     }
+
+    .controle-voz {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .texto-parcial {
+      font-size: 13px;
+      padding: 3px 6px;
+      background: #f1f1f1;
+      border-radius: 6px;
+      text-align: center;
+      width: 140px;
+    }
+
+    .botoes-controle {
+      display: flex;
+      gap: 6px;
+    }
+
+    .botoes-controle button {
+      width: 32px;
+      height: 32px;
+      font-size: 14px;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
-  <div class="gravador">
+  <div id="app" class="gravador">
     <button id="btnGravar" title="Iniciar gravação">🎙️</button>
-    <button id="btnCancelar" class="cancelar hidden" title="Cancelar">❌</button>
-    <button id="btnConfirmar" class="ok hidden" title="Confirmar">✅</button>
   </div>
 
   <script>
-    let recognition;
-    const btnGravar = document.getElementById('btnGravar');
-    const btnCancelar = document.getElementById('btnCancelar');
-    const btnConfirmar = document.getElementById('btnConfirmar');
-
-    let textoFinal = '';
-    let textoParcial = '';
-
+    const app = document.getElementById('app');
     const TARGET = window.origin.includes('github.io')
-    ? 'https://welington708.github.io'
-    : 'https://verdeagritech--testes.sandbox.lightning.force.com';
+      ? 'https://welington708.github.io'
+      : 'https://verdeagritech--testes.sandbox.lightning.force.com';
 
+    let recognition;
+    let textoFinal = '';
+    let isGravando = false;
 
-    function enviar(status, extras = {}) {
-      window.parent.postMessage({ status, ...extras }, TARGET);
-    }
-
-    function iniciarGravacao() {
+    function iniciarReconhecimento() {
       if (!('webkitSpeechRecognition' in window)) {
         alert('Reconhecimento de voz não suportado.');
         return;
       }
 
       recognition = new webkitSpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
       recognition.lang = 'pt-BR';
+      recognition.interimResults = true;
+
+      textoFinal = '';
+
+      const container = document.createElement('div');
+      container.className = 'controle-voz';
+      container.innerHTML = `
+        <div class="texto-parcial" id="parcial">🎤 Escutando...</div>
+        <div class="botoes-controle">
+          <button class="cancelar">❌</button>
+          <button class="ok">✅</button>
+        </div>
+      `;
+
+      app.innerHTML = '';
+      app.appendChild(container);
+
+      window.parent.postMessage({ status: 'gravando' }, TARGET);
+
+      let textoParcial = '';
 
       recognition.onresult = (event) => {
-        let interim = '';
+        textoParcial = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const resultado = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            textoFinal += event.results[i][0].transcript;
+            textoFinal += resultado;
           } else {
-            interim += event.results[i][0].transcript;
+            textoParcial += resultado;
           }
         }
 
-        textoParcial = textoFinal + interim;
-        enviar('gravando', { textoParcial });
+        const parcialEl = document.getElementById('parcial');
+        if (parcialEl) {
+          parcialEl.textContent = textoParcial || textoFinal;
+        }
+
+        if (textoParcial) {
+          window.parent.postMessage({ textoParcial }, TARGET);
+        }
       };
 
       recognition.onerror = (event) => {
-        console.error('Erro:', event.error);
-        parar();
+        console.error('❌ Erro:', event.error);
+        cancelar();
+      };
+
+      recognition.onend = () => {
+        console.log('🎤 Reconhecimento finalizado');
       };
 
       recognition.start();
-      textoFinal = '';
-      textoParcial = '';
-      btnGravar.classList.add('hidden');
-      btnCancelar.classList.remove('hidden');
-      btnConfirmar.classList.remove('hidden');
-      enviar('gravando');
+
+      container.querySelector('.cancelar').onclick = () => cancelar();
+      container.querySelector('.ok').onclick = () => confirmar();
     }
 
-    function parar() {
+    function cancelar() {
       if (recognition) recognition.stop();
-      btnGravar.classList.remove('hidden');
-      btnCancelar.classList.add('hidden');
-      btnConfirmar.classList.add('hidden');
-      enviar('encerrado');
+      textoFinal = '';
+      restaurarBotao();
+      window.parent.postMessage({ status: 'encerrado' }, TARGET);
     }
 
-    btnGravar.onclick = iniciarGravacao;
-
-    btnCancelar.onclick = () => {
-      textoFinal = '';
-      textoParcial = '';
-      parar();
-    };
-
-    btnConfirmar.onclick = () => {
-      parar();
+    function confirmar() {
+      if (recognition) recognition.stop();
       if (textoFinal.trim().length > 0) {
-        enviar('encerrado', { textoTranscrito: textoFinal.trim() });
+        window.parent.postMessage({ textoTranscrito: textoFinal.trim(), status: 'encerrado' }, TARGET);
+      } else {
+        window.parent.postMessage({ status: 'encerrado' }, TARGET);
       }
-    };
+      restaurarBotao();
+    }
+
+    function restaurarBotao() {
+      app.innerHTML = `<button id="btnGravar" title="Iniciar gravação">🎙️</button>`;
+      document.getElementById('btnGravar').onclick = iniciarReconhecimento;
+    }
+
+    document.getElementById('btnGravar').onclick = iniciarReconhecimento;
   </script>
 </body>
 </html>
-/* git add index.html
-git commit -m "Index com ajuste de botão Trad"
-git push origin main
- */
