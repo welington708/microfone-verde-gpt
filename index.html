@@ -172,14 +172,23 @@
     }
 
     function confirmar() {
-      if (recognition) recognition.stop();
-      if (textoFinal.trim().length > 0) {
-        window.parent.postMessage({ textoTranscrito: textoFinal.trim(), status: 'encerrado' }, TARGET);
+      if (recognition) {
+        recognition.onend = () => {
+          console.log('🎤 Reconhecimento encerrado (via confirmar ✅)');
+          if (textoFinal.trim().length > 0) {
+            window.parent.postMessage({ textoTranscrito: textoFinal.trim(), status: 'encerrado' }, TARGET);
+          } else {
+            window.parent.postMessage({ status: 'encerrado' }, TARGET);
+          }
+          restaurarBotao();
+        };
+        recognition.stop();
       } else {
-        window.parent.postMessage({ status: 'encerrado' }, TARGET);
+        // fallback
+        restaurarBotao();
       }
-      restaurarBotao();
     }
+
 
     function restaurarBotao() {
       app.innerHTML = `<button id="btnGravar" title="Iniciar gravação">🎙️</button>`;
@@ -190,3 +199,6 @@
   </script>
 </body>
 </html>
+<!-- 🔊 iframe de áudio git add index.html
+git commit -m "Index V2.3"
+git push origin main -->
