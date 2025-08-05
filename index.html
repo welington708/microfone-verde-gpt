@@ -81,13 +81,6 @@
       display: flex;
       gap: 6px;
     }
-
-    .botoes-controle button {
-      width: 32px;
-      height: 32px;
-      font-size: 14px;
-      padding: 0;
-    }
   </style>
 </head>
 <body>
@@ -97,17 +90,15 @@
 
   <script>
     const app = document.getElementById('app');
-    const TARGET = window.origin.includes('github.io')
-      ? 'https://welington708.github.io'
-      : 'https://verdeagritech--testes.sandbox.lightning.force.com';
+    const urlParams = new URLSearchParams(window.location.search);
+    const TARGET = urlParams.get('origin') || '*'; // use origin da query string
 
     let recognition;
     let textoFinal = '';
-    let isGravando = false;
 
     function iniciarReconhecimento() {
       if (!('webkitSpeechRecognition' in window)) {
-        alert('Reconhecimento de voz não suportado.');
+        alert('Reconhecimento de voz não suportado neste navegador.');
         return;
       }
 
@@ -157,17 +148,20 @@
 
       recognition.onerror = (event) => {
         console.error('❌ Erro:', event.error);
+        if (event.error === 'not-allowed') {
+          alert('Permissão de microfone negada. Verifique as configurações do navegador.');
+        }
         cancelar();
       };
 
       recognition.onend = () => {
-        console.log('🎤 Reconhecimento finalizado');
+        console.log('🎤 Reconhecimento encerrado');
       };
 
       recognition.start();
 
-      container.querySelector('.cancelar').onclick = () => cancelar();
-      container.querySelector('.ok').onclick = () => confirmar();
+      container.querySelector('.cancelar').onclick = cancelar;
+      container.querySelector('.ok').onclick = confirmar;
     }
 
     function cancelar() {
