@@ -175,20 +175,23 @@
       if (recognition) {
         recognition.onend = () => {
           console.log('🎤 Reconhecimento encerrado (via confirmar ✅)');
+          console.log('🔁 textoFinal:', textoFinal);
+
           if (textoFinal.trim().length > 0) {
-            window.parent.postMessage({ textoTranscrito: textoFinal.trim(), status: 'encerrado' }, TARGET);
+            window.parent.postMessage({
+              textoTranscrito: textoFinal.trim(),
+              status: 'encerrado'
+            }, TARGET);
           } else {
             window.parent.postMessage({ status: 'encerrado' }, TARGET);
           }
+
           restaurarBotao();
         };
+
         recognition.stop();
-      } else {
-        // fallback
-        restaurarBotao();
       }
     }
-
 
     function restaurarBotao() {
       app.innerHTML = `<button id="btnGravar" title="Iniciar gravação">🎙️</button>`;
