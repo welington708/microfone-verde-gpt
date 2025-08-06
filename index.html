@@ -167,12 +167,14 @@
       window.parent.postMessage({ status: 'encerrado' }, TARGET);
     }
 
-    function confirmar() {
-      if (recognition) {
+      function confirmar() {
+        if (!recognition) return;
+
         recognition.onend = () => {
           console.log('🎤 Reconhecimento encerrado (via confirmar ✅)');
           console.log('🔁 textoFinal:', textoFinal);
 
+          // Envia apenas quando o texto final estiver preenchido
           if (textoFinal.trim().length > 0) {
             window.parent.postMessage({
               textoTranscrito: textoFinal.trim(),
@@ -185,9 +187,12 @@
           restaurarBotao();
         };
 
-        recognition.stop();
+        // Aguarda 500ms para garantir captura de última fala antes de parar
+        setTimeout(() => {
+          recognition.stop();
+        }, 500);
       }
-    }
+
 
     function restaurarBotao() {
       app.innerHTML = `<button id="btnGravar" title="Iniciar gravação">🎙️</button>`;
