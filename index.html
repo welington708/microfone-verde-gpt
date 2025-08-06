@@ -167,31 +167,33 @@
       window.parent.postMessage({ status: 'encerrado' }, TARGET);
     }
 
-      function confirmar() {
-        if (!recognition) return;
+    function confirmar() {
+      if (!recognition) return;
 
-        recognition.onend = () => {
-          console.log('🎤 Reconhecimento encerrado (via confirmar ✅)');
-          console.log('🔁 textoFinal:', textoFinal);
+      // Aguarda um pouco para garantir que a última transcrição seja capturada
+      recognition.onend = () => {
+        console.log('🎤 Reconhecimento encerrado (via confirmar ✅)');
+        console.log('🔁 textoFinal:', textoFinal);
 
-          // Envia apenas quando o texto final estiver preenchido
-          if (textoFinal.trim().length > 0) {
-            window.parent.postMessage({
-              textoTranscrito: textoFinal.trim(),
-              status: 'encerrado'
-            }, TARGET);
-          } else {
-            window.parent.postMessage({ status: 'encerrado' }, TARGET);
-          }
+        const textoCodificado = btoa(unescape(encodeURIComponent(textoFinal.trim())));
 
-          restaurarBotao();
-        };
+        if (textoFinal.trim().length > 0) {
+          window.parent.postMessage({
+            textoTranscritoCodificado: textoCodificado,
+            status: 'encerrado'
+          }, TARGET);
+        } else {
+          window.parent.postMessage({ status: 'encerrado' }, TARGET);
+        }
 
-        // Aguarda 500ms para garantir captura de última fala antes de parar
-        setTimeout(() => {
-          recognition.stop();
-        }, 500);
-      }
+        restaurarBotao();
+      };
+
+      // Dá um pequeno delay antes de parar para garantir que a última fala seja registrada
+      setTimeout(() => {
+        recognition.stop();
+      }, 500);
+    }
 
 
     function restaurarBotao() {
@@ -204,5 +206,5 @@
 </body>
 </html>
 <!-- 🔊 iframe de áudio git add index.html
-git commit -m "Index V2.7 AT"
-git push origin main -->
+git commit -m "Index V3.1 Criptografia"
+git push origin main teste de projeto 000 -->
