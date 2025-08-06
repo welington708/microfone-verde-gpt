@@ -105,6 +105,8 @@
       recognition = new webkitSpeechRecognition();
       recognition.lang = 'pt-BR';
       recognition.interimResults = true;
+      recognition.continuous = true; // <--- adicione esta linha
+
 
       textoFinal = '';
 
@@ -197,5 +199,5 @@
 </body>
 </html>
 <!-- 🔊 iframe de áudio git add index.html
-git commit -m "Index V2.3"
+git commit -m "Index V2.7 AT"
 git push origin main -->
